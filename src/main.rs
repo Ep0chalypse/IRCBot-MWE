@@ -29,7 +29,6 @@ async fn main() -> irc::error::Result<()> {
 
     let mut client = Client::from_config(config.to_owned()).await?;
     client.identify()?;
-
     let mut stream = client.stream()?;
     let sender = client.sender();
 
@@ -43,11 +42,20 @@ async fn main() -> irc::error::Result<()> {
         println!("{}", message);
         match message.command {
             Command::PRIVMSG(ref target, ref msg) => {
+                // The bot will contain many commands in the future so I avoided using a long if/else or match statement here
                 for command in &commands {
                     if msg.eq_ignore_ascii_case(command.command().as_str()) {
                         command.on_message(&sender, message.to_owned(), target);
                     }
                 }
+                /*
+                This doesn't block the thread and the bot remains responsive, but I can't pass variables like sender, message, etc...
+                tokio::spawn(async move {
+                    sender.send_privmsg(target, "Before sleep()").expect("Error sending message");
+                    tokio::time::sleep(Duration::from_secs(10)).await;
+                    sender.send_privmsg(target, "After sleep()").expect("Error sending message");
+                });
+                */
             }
             _ => {}
         }
