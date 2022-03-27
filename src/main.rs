@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use command::Cmd;
 use futures::prelude::*;
 use hello_command::Hello;
@@ -45,17 +47,19 @@ async fn main() -> irc::error::Result<()> {
                 // The bot will contain many commands in the future so I avoided using a long if/else or match statement here
                 for command in &commands {
                     if msg.eq_ignore_ascii_case(command.command().as_str()) {
+                        // This works
                         command.on_message(&sender, message.to_owned(), target);
+                    
+                        // This doesn't block the thread and the bot remains responsive, but I can't pass variables like sender, message, etc...
+                        tokio::spawn(async move {
+                            println!("Before sleep()");
+                            tokio::time::sleep(Duration::from_secs(10)).await;
+                            println!("After sleep()");
+                            // This doesn't work when uncommented
+                            // command.on_message(&sender, message.to_owned(), target);
+                        });  
                     }
                 }
-                /*
-                This doesn't block the thread and the bot remains responsive, but I can't pass variables like sender, message, etc...
-                tokio::spawn(async move {
-                    sender.send_privmsg(target, "Before sleep()").expect("Error sending message");
-                    tokio::time::sleep(Duration::from_secs(10)).await;
-                    sender.send_privmsg(target, "After sleep()").expect("Error sending message");
-                });
-                */
             }
             _ => {}
         }
